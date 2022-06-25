@@ -19,6 +19,15 @@ except Exception as e:
 
 bot = commands.Bot(command_prefix='%', description = "Hey! Hey Hey! Tambourine Club!", intents = intents)
 
+def create_embed(author, output_list, page_num):
+    embed = discord.Embed(title=author, description = "Here are your bets!",color=discord.Colour.from_rgb(255, 255, 51))
+    embed.add_field(name="Bet ID", value = output_list[page_num]["BetID"], inline=False)
+    embed.add_field(name="Bet", value = output_list[page_num]["Bet"], inline=False)
+    embed.add_field(name="Punishment", value = output_list[page_num]["Punishment"], inline=False)
+    embed.add_field(name="Link", value = output_list[page_num]["Link"], inline=False)
+    embed.add_field(name="Fulfilled", value = output_list[page_num]["Fulfilled"], inline=False)
+    embed.add_field(name="Page", value=page_num + 1, inline=False)
+    return embed
 @bot.event
 async def on_ready():
     print("Logged in as")
@@ -54,13 +63,7 @@ async def mybets(ctx, page_num = 0):
     
     for data in x:
         output_list.append(data)
-    embed = discord.Embed(title=ctx.author.name, description = "Description",color=discord.Colour.from_rgb(255, 255, 51))
-    embed.add_field(name="Bet ID", value = output_list[page_num]["BetID"], inline=False)
-    embed.add_field(name="Bet", value = output_list[page_num]["Bet"], inline=False)
-    embed.add_field(name="Punishment", value = output_list[page_num]["Punishment"], inline=False)
-    embed.add_field(name="Link", value = output_list[page_num]["Link"], inline=False)
-    embed.add_field(name="Fulfilled", value = output_list[page_num]["Fulfilled"], inline=False)
-    embed.add_field(name="Page", value=page_num + 1, inline=False)
+    embed = create_embed(ctx.author.name, output_list, page_num)
     msg = await ctx.send(embed=embed)
     next_emoji = '➡️'
     prev_emoji = '⬅️'
@@ -83,6 +86,8 @@ async def changebet(ctx, betID, bet_param, new_param):
 
 @bot.event
 async def on_raw_reaction_add(payload):
+    if payload.user_id == bot.user.id:
+        return
     msg = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
     page_num = int(msg.embeds[0].fields[-1].value)
     if payload.emoji == '➡️':
@@ -97,17 +102,13 @@ async def on_raw_reaction_add(payload):
         page_num = len(output_list) - 1
     elif page_num >= len(output_list):
         page_num = 0
-    embed = discord.Embed(title=msg.embeds[0].title, description = "Description", color=discord.Colour.from_rgb(255, 255, 51))
-    embed.add_field(name="Bet ID", value = output_list[page_num]["BetID"], inline=False)
-    embed.add_field(name="Bet", value = output_list[page_num]["Bet"], inline=False)
-    embed.add_field(name="Punishment", value = output_list[page_num]["Punishment"], inline=False)
-    embed.add_field(name="Link", value = output_list[page_num]["Link"], inline=False)
-    embed.add_field(name="Fulfilled", value = output_list[page_num]["Fulfilled"], inline=False)
-    embed.add_field(name="Page", value=page_num + 1, inline=False)
+    embed = create_embed(msg.embeds[0].title, output_list, page_num)
     await msg.edit(embed=embed)
 
 @bot.event
 async def on_raw_reaction_remove(payload):
+    if payload.user_id == bot.user.id:
+        return
     msg = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
     page_num = int(msg.embeds[0].fields[-1].value)
     if payload.emoji == '➡️':
@@ -122,13 +123,7 @@ async def on_raw_reaction_remove(payload):
         page_num = len(output_list) - 1
     elif page_num >= len(output_list):
         page_num = 0
-    embed = discord.Embed(title=msg.embeds[0].title, description = "Description", color=discord.Colour.from_rgb(255, 255, 51))
-    embed.add_field(name="Bet ID", value = output_list[page_num]["BetID"], inline=False)
-    embed.add_field(name="Bet", value = output_list[page_num]["Bet"], inline=False)
-    embed.add_field(name="Punishment", value = output_list[page_num]["Punishment"], inline=False)
-    embed.add_field(name="Link", value = output_list[page_num]["Link"], inline=False)
-    embed.add_field(name="Fulfilled", value = output_list[page_num]["Fulfilled"], inline=False)
-    embed.add_field(name="Page", value=page_num + 1, inline=False)
+    embed = create_embed(msg.embeds[0].title, output_list, page_num)
     await msg.edit(embed=embed)
 
 bot.run(TOKEN)

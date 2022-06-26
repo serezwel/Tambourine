@@ -3,6 +3,7 @@ import pymongo
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from datetime import date
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -18,15 +19,18 @@ except Exception as e:
     quit()
 
 bot = commands.Bot(command_prefix='%', description = "Hey! Hey Hey! Tambourine Club!", intents = intents)
-
+def next_sequence_value(sequence_name):
+    sequence_doc = db["Counter"].find_one_and_update({"_id":sequence_name}, {"$inc": {"sequence_value": 1}})
+    return sequence_doc["sequence_value"]
 def create_embed(author, output_list, page_num):
     embed = discord.Embed(title=author, description = "Here are your bets!",color=discord.Colour.from_rgb(255, 255, 51))
     embed.add_field(name="Bet ID", value = output_list[page_num]["BetID"], inline=False)
     embed.add_field(name="Bet", value = output_list[page_num]["Bet"], inline=False)
     embed.add_field(name="Punishment", value = output_list[page_num]["Punishment"], inline=False)
     embed.add_field(name="Link", value = output_list[page_num]["Link"], inline=False)
-    embed.add_field(name="Fulfilled", value = output_list[page_num]["Fulfilled"], inline=False)
+    embed.add_field(name="Status", value = output_list[page_num]["Status"], inline=False)
     embed.add_field(name="Page", value=page_num + 1, inline=False)
+    
     return embed
 @bot.event
 async def on_ready():
@@ -40,7 +44,7 @@ async def bet(ctx, bet:str, punishment:str, link:str):
     Use quotation marks
     e.g. %bet "The mets wins the superbowl" "3 hours of rick roll" "https://youtu.be/dQw4w9WgXcQ" """
     try:
-        bet_dict = {"BetID": col.count_documents({}) + 1, "Better": ctx.author.name, "Bet": bet, "Punishment": punishment, "Link": link, "Fulfilled": False}
+        bet_dict = {"BetID": next_sequence_value("betid") + 1, "Better": ctx.author.name, "Bet": bet, "Punishment": punishment, "Link": link, "Status": "Pending"}
     except Exception as e:
         print(e)
         return
@@ -60,9 +64,11 @@ async def mybets(ctx, page_num = 0):
     """See the list of bets you made so far!"""
     x = col.find({"Better": ctx.author.name})
     output_list = []
-    
     for data in x:
-        output_list.append(data)
+        output_list.append(data) 
+    if len(output_list) == 0:
+        await ctx.send("You have no bets!")
+        return
     embed = create_embed(ctx.author.name, output_list, page_num)
     msg = await ctx.send(embed=embed)
     next_emoji = '➡️'
@@ -72,10 +78,12 @@ async def mybets(ctx, page_num = 0):
 
 
 @bot.command()
-async def finishbet(ctx, betID):
+async def finishbet(ctx, betID, result):
     """Mark your bet finished! Use the bet ID"""
-    col.update_one({"BetID": int(betID)}, {'$set': {"Fulfilled": True}})
-    await ctx.send("Bet Finished!")
+    if result == "W".lower():
+        col.update_one({"BetID": int(betID)}, {'$set': {"Status": "Won"}})
+    elif result == "L".lower():
+        col.update_one({"BetID": int(betID)}, {'$set': {"Status": "Lost"}})
 
 @bot.command()
 async def changebet(ctx, betID, bet_param, new_param):

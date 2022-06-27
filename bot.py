@@ -56,7 +56,8 @@ async def bet(ctx, bet:str, punishment:str, link:str):
 @bot.command()
 async def deletebet(ctx, betID):
     """Delete a bet, use the bet ID"""
-    x = col.delete_one({"BetID": betID})
+    x = col.delete_one({"BetID": int(betID)})
+    sequence_doc = db["Counter"].find_one_and_update({"_id":"betid"}, {"$inc": {"sequence_value": -1}})
     await ctx.send("Deleted bet!")
 
 @bot.command()
@@ -91,6 +92,11 @@ async def changebet(ctx, betID, bet_param, new_param):
     Parameter options: Bet (what you are betting), Punishment (the punishment if you lose your bet), Link (link to the x hours video)"""
     col.update_one({"BetID": int(betID)}, {'$set': {bet_param: new_param}})
     await ctx.send("Successfully changed!")
+
+@bot.command(hidden=True)
+@commands.is_owner()
+async def shutdown(ctx):
+    exit()
 
 @bot.event
 async def on_raw_reaction_add(payload):

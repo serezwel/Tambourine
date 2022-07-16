@@ -39,7 +39,12 @@ class Tambourine(commands.Cog):
     async def bet(self, ctx, bet:str, punishment:str, link:str="None"):
         """Submit a bet
         Use quotation marks
-        e.g. %bet "The mets wins the superbowl" "3 hours of rick roll" "https://youtu.be/dQw4w9WgXcQ" """
+        e.g. %bet "The mets wins the superbowl" "3 hours of rick roll" "https://youtu.be/dQw4w9WgXcQ"
+        For no link bets,  Please do NOT include the third input!
+        e.g. %bet "The mets wins the superbowl" "I will cosplay as nagNose" """
+        if not link:
+            await ctx.send("Please include the link! If it's a non-video bet, use the no link format!")
+            return
         try:
             bet_dict = {"BetID": next_sequence_value("betid") + 1, "Better": ctx.author.name, "Bet": bet, "Punishment": punishment, "Link": link, "Status": "Pending"}
         except Exception as e:
@@ -76,7 +81,7 @@ class Tambourine(commands.Cog):
 
     @commands.command()
     async def finishbet(self, ctx, betID, result):
-        """Mark your bet finished! Use the bet ID"""
+        """Mark your bet finished! Use the bet ID. Result: L for Loss, W for Win (e.g. %finishbet 1 L)"""
         if result == "W".lower():
             col.update_one({"BetID": int(betID)}, {'$set': {"Status": "Won"}})
         elif result == "L".lower():
